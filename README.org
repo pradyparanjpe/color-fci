@@ -1,0 +1,46 @@
+#+title: color-fci
+#+property: header-args :results no :eval never
+#+OPTIONS: _:nil
+
+* Color Fill-column-Indicator
+- A quick dirty hack to change color of fill-column-indicator (fci) to indicate the fraction of 'fill-column' occupied by current line.
+
+* Minor Mode
+  - When both =color-fci-mode= and =display-fill-column-indicator-mode= are ON, color of =display-fill-column-indicator-character= displayed at =fill-column= is altered regularly.
+  - Frequency of these updates are controlled by customizing variable =color-fci-call-freq-sec=.
+  - Current color is stored temporarily in internal variable =color-fci-orig-bg-color=.
+
+* Installation and usage
+- Use [[https://github.com/slotThe/vc-use-package][vc-use-package]].
+  #+begin_src emacs-lisp
+    (use-package color-fci
+      :vc (:fetcher "gitlab" :repo "pradyparanjpe/color-fci")
+      :custom
+      (color-fci-overflow-color "#ffffff")
+      :hook
+      (prog-mode . color-fci-mode))
+    #+end_src
+
+- Or
+  #+begin_src emacs-lisp
+    (unless (package-installed-p 'color-fci)
+      (package-vc-install "https://gitlab.com/pradyparanjpe/color-fci"))
+    (require 'color-fci)
+    (add-hook 'prog-mode-hook #'color-fci-mode)
+  #+end_src
+
+... or equivalent.
+
+* Customize
+** color-fci-bright-frac
+- Brightness of fill-column indicator as a fraction between 0 and 1.
+  Bad values are clipped.
+
+** color-fci-tracks-point
+Boolean, if non-nil, color is derived based on =current-column= of =point=, rather than filled fraction of current line.
+
+** color-fci-overflow-color
+If tracker (point/line-filled fraction) flows beyond =fill-column=, always return this color (scaled by =color-fci-bright-frac=).
+
+** color-fci-call-freq-sec
+Try to re-paint fci when idle for more than this period. (seconds)
