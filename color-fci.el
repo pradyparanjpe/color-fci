@@ -31,7 +31,10 @@
 ;;; Code:
 
 (defgroup color-fci nil
-  "paint fill-column by changing face background")
+  "Paint fill-column by changing face background"
+  :group 'convenience
+  :group 'display
+  :prefix 'color-fci)
 
 (defvar color-fci-timer nil
   "Handle for `color-fci-mode'")
@@ -54,6 +57,7 @@ instead of line fill fraction"
 (defcustom color-fci-overflow-color
   "#ff00ff"
   "Color of indicator when line overflows fill-column"
+  :type 'color
   :group 'color-fci)
 
 (defcustom color-fci-call-freq-sec 2
