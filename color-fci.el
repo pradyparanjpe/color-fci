@@ -1,15 +1,19 @@
 ;;; color-fci.el --- Paint fill-column indicator -*- lexical-binding: t; -*-
-;;; Commentary:
-;; Copyright (C) 2019-2023  Free Software Foundation, Inc.
-
+;; Copyright (C) 2023  Pradyumna Paranjape. (I shall transfer this to FSF)
+;;
 ;; Author: Pradyumna Paranjape <pradyparanjpe@rediffmail.com>
-;; URL: https://www.gitlab.com/pradyparanjpe/color-fci
 ;; Version: 0.0.1
 ;; Package-Requires: ((emacs "27.1"))
-;; Keywords: faces
-
+;; Keywords: faces, display, convenience
+;; URL: https://www.gitlab.com/pradyparanjpe/color-fci
+;;
+;;; Commentary:
+;; A quick dirty hack to change color of fill-column-indicator (fci)
+;; to indicate the fraction of `fill-column' occupied by current line.
+;; Minor mode: Schedules run with idle timer to run recolor fci.
+;; Customize using customization group `color-fci'.
+;;
 ;;; License:
-
 ;; This file is part of color-fci.
 ;;
 ;; color-fci is free software: you can redistribute it and/or modify
@@ -82,11 +86,11 @@ Otherwise, use column of end of current line"
      fill-column))
 
 (defun color-fci--calc-color (frac)
-  "Calculate and return RGB tuple (between 0 and 1) for FRAC."
+  "Calculate RGB values list 0 < val < 1 for FRAC fraction."
   (let* ((frac (if color-fci-invert (- 1.0 frac) frac))
-         (red (max 0.0 (- (* 2.0 frac) 1.0)))
-         (green (max 0.0 (- 1.0 (* 2.0 frac))))
-         (blue (min 1 (- 10 (* 10 frac)))))
+         (red (min 1.0 (* 2.0 frac)))
+         (green (min 1.0 (* 2.0 (- 1.0 frac))))
+         (blue (max 0 (- 1.0 (* 10 frac)))))
     `(,red ,green ,blue)))
 
 (defun fill-cap-color (frac &optional bright)
@@ -104,6 +108,7 @@ BRIGHT-scaled `color-fci-overflow-color')"
          (col-vals (mapcar (lambda (x) (* bright x)) rgb)))
     (apply #'color-rgb-to-hex `(,@col-vals 2))))
 
+;;;###autoload
 (defun color-fci ()
   "Color fill-column according to position of cursor"
   (interactive)
