@@ -58,6 +58,11 @@
     :type 'number
     :group 'color-fci)
 
+  (defcustom color-fci-invert nil
+    "When non-nil, Invert colors: red for 0, cyan for 1"
+    :type 'boolean
+    :group 'color-fci)
+
   (defcustom color-fci-tracks-point nil
     "When non-nil, color is calculated based on column of point
   instead of line fill fraction"
@@ -83,33 +88,34 @@
 
   If `color-fci-tracks-point' is non-nil, use column of point
   Otherwise, use column of end of current line"
-    (if color-fci-tracks-point
-        (* 1.0 (current-column))
-      (let ((eol-point (save-excursion (end-of-line) (current-column))))
-        (* 1.0 eol-point))))
+    (/ (if color-fci-tracks-point
+           (* 1.0 (current-column))
+         (let ((eol-point (save-excursion (end-of-line) (current-column))))
+           (* 1.0 eol-point)))
+       fill-column))
 
-  (defun fill-cap-color (frac &optional bright invert)
+  (defun color-fci--calc-color (frac)
+    "Calculate and return RGB tuple (between 0 and 1) for FRAC."
+    (let* ((frac (if color-fci-invert (- 1.0 frac) frac))
+           (red (max 0.0 (- (* 2.0 frac) 1.0)))
+           (green (max 0.0 (- 1.0 (* 2.0 frac))))
+           (blue (min 1 (- 10 (* 10 frac)))))
+      `(,red ,green ,blue)))
+
+  (defun fill-cap-color (frac &optional bright)
     "Color based on filled capacity fraction FRAC.
 
-  =0= is empty (bad = red), =1= is filled (good = blue-green)
+  =0= is empty (good = cyan), =1= is filled (bad = red)
   Fraction of brightness is provided through BRIGHT, else assumed as 1.0
   If INVERT is non-nil, goodness/badness is reversed.
   FRAC > 1.0 is interpreted as *overfilled* and returns
   BRIGHT-scaled `color-fci-overflow-color')"
-    (if (> frac 1.0)
-        (let* ((bright (max 0 (min (or bright 1) 1)))
-               (col-vals
-                (mapcar (lambda (x)
-                          (* bright x))
-                        (color-name-to-rgb
-                         color-fci-overflow-color))))
-          (apply #'color-rgb-to-hex `(,@col-vals 2)))
-      (let* ((frac (if invert (- 1.0 frac) frac))
-             (bright (or bright 1))
-             (red (* bright (* 2 (- 0.5 (max 0 (- frac 0.5))))))
-             (green (* bright (* 2 (- 0.5 (max 0 (- 0.5 frac))))))
-             (blue (* bright (* 10 (max 0 (- frac 0.9))))))
-        (color-rgb-to-hex red green blue 2))))
+    (let* ((bright (max 0 (min (or bright 1) 1)))
+           (rgb (if (> frac 1.0)
+                    (color-name-to-rgb color-fci-overflow-color)
+                  (color-fci--calc-color frac)))
+           (col-vals (mapcar (lambda (x) (* bright x)) rgb)))
+      (apply #'color-rgb-to-hex `(,@col-vals 2))))
 #+end_src
 
 * Callable
@@ -120,8 +126,7 @@
     (when display-fill-column-indicator-mode
       (set-face-background
        'fill-column-indicator
-       (fill-cap-color (/ (color-fci--tracker) fill-column)
-                       color-fci-bright-frac t))))
+       (fill-cap-color (color-fci--tracker) color-fci-bright-frac))))
 #+end_src
 
 * Minor mode
