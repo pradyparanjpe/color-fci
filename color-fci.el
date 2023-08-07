@@ -1,44 +1,43 @@
 ;;; color-fci.el --- Paint fill-column indicator -*- lexical-binding: t; -*-
-;; Copyright (C) 2023  Pradyumna Paranjape. (I shall transfer this to FSF)
-;;
+
+;; Copyright (C) 2023  Pradyumna Paranjape.
+
 ;; Author: Pradyumna Paranjape <pradyparanjpe@rediffmail.com>
+;; URL: https://www.gitlab.com/pradyparanjpe/color-fci
 ;; Version: 0.0.1
 ;; Package-Requires: ((emacs "27.1"))
-;; Keywords: faces, display, convenience
-;; URL: https://www.gitlab.com/pradyparanjpe/color-fci
-;;
-;;; Commentary:
-;; A quick dirty hack to change color of fill-column-indicator (fci)
-;; to indicate the fraction of `fill-column' occupied by current line.
-;; Minor mode: Schedules run with idle timer to run recolor fci.
-;; Customize using customization group `color-fci'.
-;;
-;;; License:
-;; This file is part of color-fci.
-;;
-;; color-fci is free software: you can redistribute it and/or modify
+
+;; This file is NOT part of GNU Emacs.
+;; This file is a part of color-fci
+
+;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation, either version 3 of the License, or
 ;; (at your option) any later version.
 ;;
-;; color-fci is distributed in the hope that it will be useful,
+;; This program is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
 ;;
 ;; You should have received a copy of the GNU General Public License
-;; along with color-fci.  If not, see <https://www.gnu.org/licenses/>.
+;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+;;; Commentary:
 ;;
-;; color fill-column-indicator according to fraction of fill-column
-;; occupied by current line
-;;
+;; A quick dirty hack to change color of fill-column-indicator (fci)
+;; to indicate the fraction of `fill-column' occupied by current line.
+;; Minor mode: Schedules `run-with-idle-timer' to run recolor fci.
+;; Customize using customization group `color-fci'.
+;; Interactive callable `color-fci' paints fci.
+
 ;;; Code:
 
 (defgroup color-fci nil
   "Paint fill-column by changing face background"
   :group 'convenience
   :group 'display
-  :prefix 'color-fci)
+  :prefix "color-fci")
 
 (defvar color-fci-timer nil
   "Handle for `color-fci-mode'")
@@ -47,7 +46,7 @@
   (face-attribute 'fill-column-indicator :background)
   "Original value of background for face `fill-column-indicator'")
 
-(defcustom color-fci-bright-frac 0.33
+(defcustom color-fci-bright-frac (/ 1.0 3.0)
   "Brightness fraction of fill-column"
   :type 'number
   :group 'color-fci)
@@ -63,8 +62,7 @@ instead of line fill fraction"
   :type 'boolean
   :group 'color-fci)
 
-(defcustom color-fci-overflow-color
-  "#ff00ff"
+(defcustom color-fci-overflow-color "#ff00ff"
   "Color of indicator when line overflows fill-column"
   :type 'color
   :group 'color-fci)
@@ -79,8 +77,7 @@ instead of line fill fraction"
 
 If `color-fci-tracks-point' is non-nil, use column of point
 Otherwise, use column of end of current line"
-  (/ (if color-fci-tracks-point
-         (* 1.0 (current-column))
+  (/ (if color-fci-tracks-point (* 1.0 (current-column))
        (let ((eol-point (save-excursion (end-of-line) (current-column))))
          (* 1.0 eol-point)))
      fill-column))
@@ -117,22 +114,25 @@ BRIGHT-scaled `color-fci-overflow-color')"
      'fill-column-indicator
      (fill-cap-color (color-fci--tracker) color-fci-bright-frac))))
 
+;;;###autoload
 (define-minor-mode color-fci-mode
   "Toggle color-fci-mode
 
 When color-fci-mode is ON, color of `display-fill-column-indicator-character'
 changes according to fraction of `fill-column' occupied by current line"
   :lighter nil
-  (if color-fci-mode
-      (unless color-fci-timer
-        (setq color-fci-orig-bg-color
-              (face-attribute 'fill-column-indicator :background))
-        (setq color-fci-timer (run-with-idle-timer
-                               color-fci-call-freq-sec t #'color-fci)))
-    (when color-fci-timer
-      (cancel-timer color-fci-timer)
-      (setq color-fci-timer nil)
-      (set-face-background 'fill-column-indicator color-fci-orig-bg-color))))
+  (let ((kw (if (display-graphic-p) :background :foreground)))
+    (if color-fci-mode
+        (unless color-fci-timer
+          (setq color-fci-orig-bg-color
+                (face-attribute 'fill-column-indicator kw))
+          (setq color-fci-timer
+                (run-with-idle-timer color-fci-call-freq-sec t #'color-fci)))
+      (when color-fci-timer
+        (cancel-timer color-fci-timer)
+        (setq color-fci-timer nil)
+        (set-face-attribute 'fill-column-indicator
+                            nil kw color-fci-orig-bg-color)))))
 
 (provide 'color-fci)
 ;;; color-fci.el ends here
