@@ -42,9 +42,11 @@
 (defvar color-fci-timer nil
   "Handle for `color-fci-mode'")
 
-(defvar color-fci-orig-bg-color
-  (face-attribute 'fill-column-indicator :background)
-  "Original value of background for face `fill-column-indicator'")
+(defvar color-fci--remap-cookie
+  nil
+  "Cookie to remap relative for face `fill-column-indicator' BUFFER-LOCAL")
+
+(make-variable-buffer-local 'color-fci--remap-cookie)
 
 (defcustom color-fci-bright-frac (/ 1.0 3.0)
   "Brightness fraction of fill-column"
@@ -105,14 +107,28 @@ BRIGHT-scaled `color-fci-overflow-color')"
          (col-vals (mapcar (lambda (x) (* bright x)) rgb)))
     (apply #'color-rgb-to-hex `(,@col-vals 2))))
 
+(defun color-fci--which-attr ()
+  "Which attribute to paint?
+
+graphical: background
+non-graphical: foreground"
+  (if (display-graphic-p) :background :foreground))
+
 ;;;###autoload
 (defun color-fci ()
   "Color fill-column according to position of cursor"
   (interactive)
   (when display-fill-column-indicator-mode
-    (set-face-background
-     'fill-column-indicator
-     (fill-cap-color (color-fci--tracker) color-fci-bright-frac))))
+    ;; Drop previous cookie
+    (if color-fci--remap-cookie
+        (face-remap-remove-relative color-fci--remap-cookie))
+    ;; Create new
+    (setq-local color-fci--remap-cookie
+                (face-remap-add-relative
+                 'fill-column-indicator
+                 `(,(color-fci--which-attr)
+                   ,(fill-cap-color (color-fci--tracker)
+                                    color-fci-bright-frac))))))
 
 ;;;###autoload
 (define-minor-mode color-fci-mode
@@ -121,18 +137,19 @@ BRIGHT-scaled `color-fci-overflow-color')"
 When color-fci-mode is ON, color of `display-fill-column-indicator-character'
 changes according to fraction of `fill-column' occupied by current line"
   :lighter nil
-  (let ((kw (if (display-graphic-p) :background :foreground)))
-    (if color-fci-mode
-        (unless color-fci-timer
-          (setq color-fci-orig-bg-color
-                (face-attribute 'fill-column-indicator kw))
-          (setq color-fci-timer
-                (run-with-idle-timer color-fci-call-freq-sec t #'color-fci)))
-      (when color-fci-timer
-        (cancel-timer color-fci-timer)
-        (setq color-fci-timer nil)
-        (set-face-attribute 'fill-column-indicator
-                            nil kw color-fci-orig-bg-color)))))
+  (if color-fci-mode
+      (unless color-fci-timer
+        ;; Cron
+        (setq color-fci-timer
+              (run-with-idle-timer color-fci-call-freq-sec t #'color-fci)))
+    (when color-fci-timer
+      ;; Drop cron
+      (cancel-timer color-fci-timer)
+      (setq color-fci-timer nil)
+      ;; reset original color
+      (when color-fci--remap-cookie
+        (face-remap-remove-relative color-fci--remap-cookie)
+        (setq-local color-fci--remap-cookie nil)))))
 
 (provide 'color-fci)
 ;;; color-fci.el ends here
