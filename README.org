@@ -1,9 +1,10 @@
 #+title: color-fci
 #+property: header-args :results no :eval never
 #+OPTIONS: _:nil
+#+html: <a href="https://www.gnu.org/software/emacs/"><img alt="GNU/Emacs" src="https://badgen.net/badge/Made%20for/GNU%2FEmacs/purple?icon=https://upload.wikimedia.org/wikipedia/commons/0/08/EmacsIcon.svg"/></a>
 
 * Color Fill-column-Indicator
-- A quick dirty hack to change color of fill-column-indicator (fci) to indicate the fraction of 'fill-column' occupied by current line.
+- A quick dirty hack to change color of fill-column-indicator (fci) to indicate the fraction of =fill-column= occupied by current line.
 
 * Minor Mode
   - When both =color-fci-mode= and =display-fill-column-indicator-mode= are ON, color of =display-fill-column-indicator-character= displayed at =fill-column= is altered regularly.
@@ -21,7 +22,7 @@
       (prog-mode . color-fci-mode))
     #+end_src
 
-- Or
+- OR.
   #+begin_src emacs-lisp
     (unless (package-installed-p 'color-fci)
       (package-vc-install "https://gitlab.com/pradyparanjpe/color-fci"))
@@ -29,18 +30,20 @@
     (add-hook 'prog-mode-hook #'color-fci-mode)
   #+end_src
 
-... or equivalent.
+… OR any suitable equivalent.
 
 * Customize
 ** color-fci-bright-frac
-- Brightness of fill-column indicator as a fraction between 0 and 1.
-  Bad values are clipped.
+Brightness of fill-column indicator as a fraction between 0 and 1.
+Bad values are clipped.
 
 ** color-fci-tracks-point
-Boolean, if non-nil, color is derived based on =current-column= of =point=, rather than filled fraction of current line.
+Boolean, if non-nil, color is derived based on =current-column= of =point=,
+rather than filled fraction of current line.
 
 ** color-fci-overflow-color
-If tracker (point/line-filled fraction) flows beyond =fill-column=, always return this color (scaled by =color-fci-bright-frac=).
+If tracker (point/line-filled fraction) flows beyond =fill-column=,
+always return this color (scaled by =color-fci-bright-frac=).
 
 ** color-fci-call-freq-sec
 Try to re-paint fci when idle for more than this period. (seconds)

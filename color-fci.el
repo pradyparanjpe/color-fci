@@ -1,6 +1,6 @@
-;;; color-fci.el --- Paint fill-column indicator -*- lexical-binding: t; -*-
+﻿;;; color-fci.el --- Paint fill-column indicator -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2023  Pradyumna Paranjape.
+;; Copyright © 2023  Pradyumna Paranjape.
 
 ;; Author: Pradyumna Paranjape <pradyparanjpe@rediffmail.com>
 ;; URL: https://www.gitlab.com/pradyparanjpe/color-fci
@@ -49,7 +49,7 @@
 (make-variable-buffer-local 'color-fci--remap-cookie)
 
 (defcustom color-fci-bright-frac (/ 1.0 3.0)
-  "Brightness fraction of fill-column"
+  "Brightness fraction of `fill-column'"
   :type 'number
   :group 'color-fci)
 
@@ -59,13 +59,13 @@
   :group 'color-fci)
 
 (defcustom color-fci-tracks-point nil
-  "When non-nil, color is calculated based on column of point
+  "When non-nil, color is calculated based on `current-column'
 instead of line fill fraction"
   :type 'boolean
   :group 'color-fci)
 
 (defcustom color-fci-overflow-color "#ff00ff"
-  "Color of indicator when line overflows fill-column"
+  "Color of indicator when line overflows `fill-column'"
   :type 'color
   :group 'color-fci)
 
@@ -85,7 +85,7 @@ Otherwise, use column of end of current line"
      fill-column))
 
 (defun color-fci--calc-color (frac)
-  "Calculate RGB values list 0 < val < 1 for FRAC fraction."
+  "Calculate '(Red Green Blue) values list 0 < val < 1 for FRAC fraction."
   (let* ((frac (if color-fci-invert (- 1.0 frac) frac))
          (red (min 1.0 (* 2.0 frac)))
          (green (min 1.0 (* 2.0 (- 1.0 frac))))
@@ -97,7 +97,6 @@ Otherwise, use column of end of current line"
 
 =0= is empty (good = cyan), =1= is filled (bad = red)
 Fraction of brightness is provided through BRIGHT, else assumed as 1.0
-If INVERT is non-nil, goodness/badness is reversed.
 FRAC > 1.0 is interpreted as *overfilled* and returns
 BRIGHT-scaled `color-fci-overflow-color')"
   (let* ((bright (max 0 (min (or bright 1) 1)))
@@ -140,8 +139,7 @@ changes according to fraction of `fill-column' occupied by current line"
   (if color-fci-mode
       (unless color-fci-timer
         ;; Cron
-        (setq color-fci-timer
-              (run-with-idle-timer color-fci-call-freq-sec t #'color-fci)))
+        (setq color-fci-timer (run-with-idle-timer color-fci-call-freq-sec t #'color-fci)))
     (when color-fci-timer
       ;; Drop cron
       (cancel-timer color-fci-timer)
