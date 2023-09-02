@@ -98,17 +98,17 @@
        fill-column))
 
   (defun color-fci--calc-color (frac)
-    "Calculate '(Red Green Blue) values list 0 < val < 1 for FRAC fraction."
+    "Calculate \\'(Red Green Blue) values list 0 < val < 1 for FRAC fraction."
     (let* ((frac (if color-fci-invert (- 1.0 frac) frac))
            (red (min 1.0 (* 2.0 frac)))
            (green (min 1.0 (* 2.0 (- 1.0 frac))))
            (blue (max 0 (- 1.0 (* 10 frac)))))
       `(,red ,green ,blue)))
 
-  (defun fill-cap-color (frac &optional bright)
+  (defun color-fci--fill-cap-color (frac &optional bright)
     "Color based on filled capacity fraction FRAC.
 
-  =0= is empty (good = cyan), =1= is filled (bad = red)
+  \=0\= is empty (good = cyan), \=1\= is filled (bad = red)
   Fraction of brightness is provided through BRIGHT, else assumed as 1.0
   FRAC > 1.0 is interpreted as *overfilled* and returns
   BRIGHT-scaled `color-fci-overflow-color')"
@@ -142,8 +142,8 @@
                   (face-remap-add-relative
                    'fill-column-indicator
                    `(,(color-fci--which-attr)
-                     ,(fill-cap-color (color-fci--tracker)
-                                      color-fci-bright-frac))))))
+                     ,(color-fci--fill-cap-color
+                       (color-fci--tracker) color-fci-bright-frac))))))
 #+end_src
 
 * Minor mode
@@ -158,7 +158,8 @@
     (if color-fci-mode
         (unless color-fci-timer
           ;; Cron
-          (setq color-fci-timer (run-with-idle-timer color-fci-call-freq-sec t #'color-fci)))
+          (setq color-fci-timer (run-with-idle-timer
+                                 color-fci-call-freq-sec t #'color-fci)))
       (when color-fci-timer
         ;; Drop cron
         (cancel-timer color-fci-timer)

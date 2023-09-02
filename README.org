@@ -9,10 +9,17 @@
 * Minor Mode
   - When both =color-fci-mode= and =display-fill-column-indicator-mode= are ON, color of =display-fill-column-indicator-character= displayed at =fill-column= is altered regularly.
   - Frequency of these updates are controlled by customizing variable =color-fci-call-freq-sec=.
-  - Current color is stored temporarily in internal variable =color-fci-orig-bg-color=.
+  - Original color is stored temporarily in internal variable =color-fci-orig-bg-color=.
 
 * Installation and usage
-- Use [[https://github.com/slotThe/vc-use-package][vc-use-package]].
+Color-fci is *not* in =[m]elpa=.
+For GNU/Emacs v29 or greater, use =package-vc-install=.
+For older versions, use straight or [[https://github.com/quelpa/quelpa][quelpa]].
+** use-package
+- For GNU/Emacs v30 or greater, vc-use-package is builtin.
+  For older versions, use [[https://github.com/slotThe/vc-use-package][external package]].
+- For GNU/Emacs v29 or greater, use-package is built-in.
+  For older versions, use [[https://github.com/jwiegley/use-package][external package]].
   #+begin_src emacs-lisp
     (use-package color-fci
       :vc (:fetcher "gitlab" :repo "pradyparanjpe/color-fci")
@@ -22,20 +29,26 @@
       (prog-mode . color-fci-mode))
     #+end_src
 
-- OR.
+** Native Emacs-Lisp
+- OR equivalently,
   #+begin_src emacs-lisp
     (unless (package-installed-p 'color-fci)
       (package-vc-install "https://gitlab.com/pradyparanjpe/color-fci"))
     (require 'color-fci)
+    (customize-set-variable 'color-fci-overflow-color "#ffffff")
     (add-hook 'prog-mode-hook #'color-fci-mode)
   #+end_src
 
+** Whatever
 … OR any suitable equivalent.
 
 * Customize
 ** color-fci-bright-frac
 Brightness of fill-column indicator as a fraction between 0 and 1.
 Bad values are clipped.
+
+** color-fci-invert
+Reverse color order.
 
 ** color-fci-tracks-point
 Boolean, if non-nil, color is derived based on =current-column= of =point=,
