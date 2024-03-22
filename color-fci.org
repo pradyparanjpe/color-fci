@@ -119,11 +119,10 @@
 
   (defun color-fci--calc-rgb (frac)
     "Calculate \\'(Red Green Blue) values list 0 < val < 1 for FRAC fraction."
-    (let* ((frac (if color-fci-invert (- 1.0 frac) frac))
-           (red (min 1.0 (* 2.0 frac)))
-           (green (min 1.0 (* 2.0 (- 1.0 frac))))
-           (blue (max 0 (- 1.0 (* 10 frac)))))
-      `(:background (,red ,green ,blue))))
+    (let ((frac (if color-fci-invert (- 1.0 frac) frac)))
+      `(:background (,(min 1.0 (* 2.0 frac))  ; red
+                     ,(min 1.0 (* 2.0 (- 1.0 frac)))  ; green
+                     ,(max 0 (- 1.0 (* 10 frac)))))))  ; blue
 
 
   (defun color-fci--scale-face-spec (spec &optional bright)

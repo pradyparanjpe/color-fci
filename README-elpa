@@ -1,0 +1,15 @@
+Description
+==========
+- Dynamically change color of fill-column-indicator (fci) to indicate the fraction of `fill-column' occupied by the current line.
+- Color is cyan if current line is completely empty and red when completely filled.
+- This can be inverted (customize).
+- Optionally (customize), determine color based on cursor position, irrespective of length of line.
+- Calculate color every time Emacs is idle for `color-fci-call-freq-sec' (customize).
+
+Minor Mode
+==========
+Enable `color-fci-mode' and `display-fill-column-indicator-mode'.
+
+Customization group
+=================
+Customize using group `color-fci'.

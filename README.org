@@ -4,17 +4,17 @@
 #+html: <a href="https://www.gnu.org/software/emacs/"><img alt="GNU/Emacs" src="https://badgen.net/badge/Made%20for/GNU%2FEmacs/purple?icon=https://upload.wikimedia.org/wikipedia/commons/0/08/EmacsIcon.svg"/></a>
 
 * Color Fill-column-Indicator
-- A quick dirty hack to change color of fill-column-indicator (fci) to indicate the fraction of =fill-column= occupied by current line.
+- A quick dirty hack to dynamically change color of fill-column-indicator (fci) to indicate the fraction of =fill-column= occupied by the current line.
 
 * Minor Mode
-  - When both =color-fci-mode= and =display-fill-column-indicator-mode= are ON, color of =display-fill-column-indicator-character= displayed at =fill-column= is altered regularly.
+  - When both =color-fci-mode= and =display-fill-column-indicator-mode= are /enabled/, color of =display-fill-column-indicator-character= displayed at =fill-column= is altered regularly.
   - Frequency of these updates are controlled by customizing variable =color-fci-call-freq-sec=.
-  - Original color is stored temporarily in internal variable =color-fci-orig-bg-color=.
 
 * Installation and usage
-Color-fci is *not* in =[m]elpa=.
+Color-fci is *not* in =.*elpa=.
 For GNU/Emacs v29 or greater, use =package-vc-install=.
 For older versions, use straight or [[https://github.com/quelpa/quelpa][quelpa]].
+
 ** use-package
 - For GNU/Emacs v30 or greater, vc-use-package is builtin.
   For older versions, use [[https://github.com/slotThe/vc-use-package][external package]].
@@ -22,12 +22,10 @@ For older versions, use straight or [[https://github.com/quelpa/quelpa][quelpa]]
   For older versions, use [[https://github.com/jwiegley/use-package][external package]].
   #+begin_src emacs-lisp
     (use-package color-fci
-      :vc (:fetcher "gitlab" :repo "pradyparanjpe/color-fci")
-      :custom
-      (color-fci-overflow-color "#ffffff")
-      :hook
-      (prog-mode . color-fci-mode))
-    #+end_src
+      :vc (color-fci :url "https://gitlab.com/pradyparanjpe/color-fci")
+      :custom-face (color-fci-overflow ((default (:background "#ffffff"))))
+      :hook (prog-mode . color-fci-mode))
+      #+end_src
 
 ** Native Emacs-Lisp
 - OR equivalently,
@@ -35,14 +33,18 @@ For older versions, use straight or [[https://github.com/quelpa/quelpa][quelpa]]
     (unless (package-installed-p 'color-fci)
       (package-vc-install "https://gitlab.com/pradyparanjpe/color-fci"))
     (require 'color-fci)
-    (customize-set-variable 'color-fci-overflow-color "#ffffff")
+    (custom-set-faces '(color-fci-overflow ((default (:background "#ffffff")))))
     (add-hook 'prog-mode-hook #'color-fci-mode)
-  #+end_src
+    #+end_src
 
 ** Whatever
 … OR any suitable equivalent.
 
 * Customize
+** color-fci-overflow (face)
+If tracker (point/line-filled fraction) flows beyond =fill-column=,
+always return this face (with values scaled by [[*color-fci-bright-frac][color-fci-bright-frac]]).
+
 ** color-fci-bright-frac
 Brightness of fill-column indicator as a fraction between 0 and 1.
 Bad values are clipped.
@@ -53,10 +55,6 @@ Reverse color order.
 ** color-fci-tracks-point
 Boolean, if non-nil, color is derived based on =current-column= of =point=,
 rather than filled fraction of current line.
-
-** color-fci-overflow-color
-If tracker (point/line-filled fraction) flows beyond =fill-column=,
-always return this color (scaled by =color-fci-bright-frac=).
 
 ** color-fci-call-freq-sec
 Try to re-paint fci when idle for more than this period. (seconds)
