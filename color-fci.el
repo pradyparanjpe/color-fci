@@ -46,14 +46,24 @@
   :group 'display
   :prefix "color-fci")
 
-(defvar color-fci-timer nil
+(defvar color-fci--timer nil
   "Timers for `color-fci-mode'.")
 
+(put 'color-fci--timer 'risky-local-variable t)
 
-(defvar color-fci--remap-cookie nil
+
+(defvar-local color-fci--cookie nil
   "Buffer cookie to remap relative face `fill-column-indicator'.")
 
-(make-variable-buffer-local 'color-fci--remap-cookie)
+(put 'color-fci--cookie 'risky-local-variable t)
+
+
+(defface color-fci-overflow
+  '((default (:background "#ff00ff")))
+  "Face of indicator when line overflows `fill-column'.
+
+Interpret fill-fraction > 1.0 as *overfilled* and return this value."
+  :group 'color-fci)
 
 
 (defcustom color-fci-bright-frac (/ 1.0 3.0)
@@ -79,14 +89,6 @@ When nil, calculate from instead of line fill fraction."
   :group 'color-fci)
 
 
-(defface color-fci-overflow
-  '((default (:background "#ff00ff")))
-  "Face of indicator when line overflows `fill-column'.
-
-Interpret fill-fraction > 1.0 as *overfilled* and return this value."
-  :group 'color-fci)
-
-
 (defcustom color-fci-call-freq-sec 2
   "Idle seconds after which, fill-column-indicator is recolored."
   :type 'number
@@ -96,55 +98,38 @@ Interpret fill-fraction > 1.0 as *overfilled* and return this value."
   "Return tracker position.
 
 See `color-fci-tracks-point' to decide what to track."
-  (/ (if color-fci-tracks-point (* 1.0 (current-column))
-       (let ((eol-point (save-excursion (end-of-line) (current-column))))
-         (* 1.0 eol-point)))
-     fill-column))
+  (/ (if color-fci-tracks-point (current-column)
+       (save-excursion (end-of-line) (current-column)))
+     (float fill-column)))
 
 
-(defun color-fci--calc-rgb (frac)
-  "Calculate \\'(Red Green Blue) values list 0 < val < 1 for FRAC fraction."
+(defun color-fci--calc-spec (frac)
+  "Calculate #RRGGBB values list 0 < val < 1 for FRAC fraction."
   (let ((frac (if color-fci-invert (- 1.0 frac) frac)))
-    `(:background (,(min 1.0 (* 2.0 frac))  ; red
-                   ,(min 1.0 (* 2.0 (- 1.0 frac)))  ; green
-                   ,(max 0 (- 1.0 (* 10 frac)))))))  ; blue
+    `(:background ,(color-rgb-to-hex (min 1.0 (* 2.0 frac))  ; red
+                                     (min 1.0 (* 2.0 (- 1.0 frac)))  ; green
+                                     (max 0 (- 1.0 (* 10 frac))) 2))))  ; blue
 
 
 (defun color-fci--scale-face-spec (spec &optional bright)
   "Scale attributes of SPEC by BRIGHT.
 
-SPEC is face spec to be scaled.  Attributes which are scaled: :foreground,
-:distant-foreground, :background, :underline :overline :strike-through :box.
+All possible color values of SPEC scaled by BRIGHT fraction.
 BRIGHT may be in the interval [0, 1].  If nil, return SPEC unmodified."
-  (or
-   (when bright
-     (apply
-      #'append
-      (cl-loop for (prop val) on spec by #'cddr
-               collect
-               (if (not (member prop '(:foreground
-                                       :distant-foreground
-                                       :background
-                                       :underline
-                                       :overline
-                                       :strike-through
-                                       :box)))
-                   `(,prop ,val)
-                 (pcase val
-                   ((pred stringp)
-                    (list prop
-                          (apply #'color-rgb-to-hex
-                                 `(,@(mapcar (lambda (x) (* bright x))
-                                             (color-name-to-rgb val))
-                                   2))))
-                   ((pred listp)
-                    (list prop
-                          (apply
-                           #'color-rgb-to-hex
-                           `(,@(mapcar (lambda (x) (* bright x)) val)
-                             2))))
-                   (_ `(,prop ,val)))))))
-   spec))
+  (if (not bright) spec
+    (apply
+     #'append
+     (cl-loop for (prop val) on spec by #'cddr
+              collect
+              (pcase val
+                ((and (pred stringp) (pred color-values))  ; color string
+                 (list prop (apply #'color-rgb-to-hex
+                                   `(,@(mapcar (lambda (x) (* bright x))
+                                               (color-name-to-rgb val))
+                                     2))))
+                ((pred listp)
+                 (list prop (color-fci--scale-face-spec val bright)))
+                (_ `(,prop ,val)))))))
 
 
 (defun color-fci--fill-cap-spec (frac &optional bright)
@@ -153,9 +138,8 @@ BRIGHT may be in the interval [0, 1].  If nil, return SPEC unmodified."
 FRAC is fraction of color in the interval [0, 1].  Fraction of
 brightness is provided through BRIGHT, [default: 1.0]."
   (color-fci--scale-face-spec
-   (if (> frac 1.0)
-       (face-all-attributes 'color-fci-overflow (selected-frame))
-     (color-fci--calc-rgb frac))
+   (if (> frac 1.0) (face-all-attributes 'color-fci-overflow (selected-frame))
+     (color-fci--calc-spec frac))
    (when bright (max 0 (min bright 1)))))
 
 ;;;###autoload
@@ -164,10 +148,9 @@ brightness is provided through BRIGHT, [default: 1.0]."
   (interactive)
   (when display-fill-column-indicator-mode
     ;; Drop previous cookie
-    (if color-fci--remap-cookie
-        (face-remap-remove-relative color-fci--remap-cookie))
+    (when color-fci--cookie (face-remap-remove-relative color-fci--cookie))
     ;; Create new
-    (setq-local color-fci--remap-cookie
+    (setq-local color-fci--cookie
                 (apply #'face-remap-add-relative
                        `(fill-column-indicator
                          ,@(color-fci--fill-cap-spec
@@ -181,18 +164,18 @@ When `color-fci-mode' is ON, color of `display-fill-column-indicator-character'
 changes according to fraction of `fill-column' occupied by current line."
   :lighter nil
   (if color-fci-mode
-      (unless color-fci-timer
+      (unless color-fci--timer
         ;; Cron
-        (setq color-fci-timer (run-with-idle-timer
-                               color-fci-call-freq-sec t #'color-fci)))
-    (when color-fci-timer
+        (setq color-fci--timer
+              (run-with-idle-timer color-fci-call-freq-sec t #'color-fci)))
+    (when color-fci--timer
       ;; Drop cron
-      (cancel-timer color-fci-timer)
-      (setq color-fci-timer nil)
+      (cancel-timer color-fci--timer)
+      (setq color-fci--timer nil)
       ;; reset original color
-      (when color-fci--remap-cookie
-        (face-remap-remove-relative color-fci--remap-cookie)
-        (setq-local color-fci--remap-cookie nil)))))
+      (when color-fci--cookie
+        (face-remap-remove-relative color-fci--cookie)
+        (setq-local color-fci--cookie nil)))))
 
 (provide 'color-fci)
 ;;; color-fci.el ends here
