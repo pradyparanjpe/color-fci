@@ -110,13 +110,22 @@ See `color-fci-tracks-point' to decide what to track."
                                      (min 1.0 (* 2.0 (- 1.0 frac)))  ; green
                                      (max 0 (- 1.0 (* 10 frac))) 2))))  ; blue
 
+(defun color-fci--get-spec (face &optional frame)
+  "Get spec for FACE symbol.
+
+If optional FRAME is provided, return spec for that frame.
+Else, use `selected-frame'."
+  (apply #'append
+         (mapcar (lambda (x) (list (car x) (cdr x)))
+                 (face-all-attributes face (or frame (selected-frame))))))
+
 
 (defun color-fci--scale-face-spec (spec &optional bright)
   "Scale attributes of SPEC by BRIGHT.
 
-All possible color values of SPEC scaled by BRIGHT fraction.
-BRIGHT may be in the interval [0, 1].  If nil, return SPEC unmodified."
-  (if (not bright) spec
+Scale all possible color values of SPEC by BRIGHT fraction.  BRIGHT may be in
+interval [0, 1).  If BRIGHT is nil or has a bad value, return SPEC unmodified."
+  (if (not (and (numberp bright) (<= 0 bright) (< bright 1))) spec
     (apply
      #'append
      (cl-loop for (prop val) on spec by #'cddr
@@ -135,11 +144,12 @@ BRIGHT may be in the interval [0, 1].  If nil, return SPEC unmodified."
 (defun color-fci--fill-cap-spec (frac &optional bright)
   "Color based on filled capacity fraction FRAC.
 
-FRAC is fraction of color in the interval [0, 1].  Fraction of
-brightness is provided through BRIGHT, [default: 1.0]."
+FRAC is fraction of color-map in the interval [0, 1].  Beyond the interval,
+the face use `color-fci-overflow'.  Scale color (derived from either means) by
+BRIGHT using `color-fci--scale-face-spec'."
   (color-fci--scale-face-spec
-   (if (> frac 1.0) (face-all-attributes 'color-fci-overflow (selected-frame))
-     (color-fci--calc-spec frac))
+   (if (<= 0.0 frac 1.0) (color-fci--calc-spec frac)
+     (color-fci--get-spec 'color-fci-overflow))
    (when bright (max 0 (min bright 1)))))
 
 ;;;###autoload
